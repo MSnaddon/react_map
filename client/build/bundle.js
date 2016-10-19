@@ -48,10 +48,11 @@
 	
 	var React = __webpack_require__(1);
 	var ReactDOM = __webpack_require__(158);
-	var Map = __webpack_require__(159);
+	var MapControls = __webpack_require__(159);
+	var MapObject = __webpack_require__(160);
 	
 	window.onload = function () {
-	  ReactDOM.render(React.createElement(Map, null), document.getElementById('app'));
+	  ReactDOM.render(React.createElement(MapControls, { mapObject: new MapObject(document.getElementById('map')) }), document.getElementById('controls'));
 	};
 
 /***/ },
@@ -19752,30 +19753,127 @@
 /* 159 */
 /***/ function(module, exports, __webpack_require__) {
 
-	"use strict";
+	'use strict';
 	
 	var React = __webpack_require__(1);
+	var CountrySelector = __webpack_require__(161);
 	
-	var Map = React.createClass({
-	  displayName: "Map",
+	var MapControls = React.createClass({
+	  displayName: 'MapControls',
 	
-	  componentWillMount: function componentWillMount() {
-	    console.log("We shall mount");
+	  getInitialState: function getInitialState() {
+	    return { countries: [], focusCountry: null };
 	  },
 	  componentDidMount: function componentDidMount() {
-	    console.log("New up the map");
+	    var url = "https://restcountries.eu/rest/v1/all";
+	    var request = new XMLHttpRequest();
+	    request.open("GET", url);
+	    request.onload = function () {
+	      var data = JSON.parse(request.responseText);
+	      this.setState({ countries: data });
+	    }.bind(this);
+	    request.send();
+	  },
+	  changeZoom: function changeZoom(num) {
+	    this.props.mapObject.changeZoom(num);
+	  },
+	  centerMap: function centerMap(latLng) {
+	    var latLng = { lat: latLng[0], lng: latLng[1] };
+	    console.log(latLng);
+	    this.props.mapObject.centerMap(latLng);
+	  },
+	  onSelectCountry: function onSelectCountry(index) {
+	    var latlng = this.state.countries[index].latlng;
+	    this.centerMap(latlng);
 	  },
 	  render: function render() {
 	    console.log("render");
 	    return React.createElement(
-	      "div",
-	      { id: "map" },
-	      "blah blah Sian is awesome"
+	      'div',
+	      null,
+	      React.createElement(
+	        'h1',
+	        null,
+	        'These are controls'
+	      ),
+	      React.createElement(CountrySelector, { countries: this.state.countries, onSelectCountry: this.onSelectCountry })
 	    );
 	  }
 	});
 	
-	module.exports = Map;
+	module.exports = MapControls;
+
+/***/ },
+/* 160 */
+/***/ function(module, exports) {
+
+	"use strict";
+	
+	var MapObject = function MapObject(container) {
+	
+	  this.map = new google.maps.Map(container, {
+	    center: { lat: 34, lng: 150 },
+	    zoom: 1
+	  });
+	  this.markers = [];
+	};
+	
+	MapObject.prototype = {
+	  setMarker: function setMarker() {
+	    var marker = new google.maps.Marker({
+	      position: { lat: 34, lng: 0 },
+	      map: this.map
+	    });
+	  },
+	  changeZoom: function changeZoom(num) {
+	    this.map.setZoom(num);
+	  },
+	  centerMap: function centerMap(latlng) {
+	    this.map.setCenter(latlng);
+	  }
+	};
+	
+	module.exports = MapObject;
+
+/***/ },
+/* 161 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	
+	var React = __webpack_require__(1);
+	
+	var CountrySelector = React.createClass({
+	  displayName: "CountrySelector",
+	
+	  handleChange: function handleChange(event) {
+	    var newIndex = event.target.value;
+	    //send info back up
+	    this.props.onSelectCountry(newIndex);
+	  },
+	  render: function render() {
+	    var options = this.props.countries.map(function (country, index) {
+	      return React.createElement(
+	        "option",
+	        { key: index, value: index },
+	        country.name
+	      );
+	    });
+	
+	    return React.createElement(
+	      "select",
+	      { id: "countries", onChange: this.handleChange },
+	      React.createElement(
+	        "option",
+	        { selected: "true", disabled: "disabled" },
+	        "Select Country"
+	      ),
+	      options
+	    );
+	  }
+	});
+	
+	module.exports = CountrySelector;
 
 /***/ }
 /******/ ]);
